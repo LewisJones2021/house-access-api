@@ -11,6 +11,7 @@ import (
 
 // function to initialise the MongoDB client and return a reference to it:
 func initMongoDB()(*mongo.Client, error){
+	
 	connectionString := "mongodb+srv://lewisjones:Adidass1122@cluster0.5wkgzkb.mongodb.net/"
 
 	// setup MongoDB client options.
@@ -27,14 +28,20 @@ func initMongoDB()(*mongo.Client, error){
 	if err != nil{
 		return nil, err
 	}
-	
 	fmt.Println("Connected to Mongo DataBase")
+
 	return client, nil
-}
-func main (){
-	_, err := initMongoDB()
+
+
+
+}	
+	
+func main(){
+	client, err := initMongoDB()
 	if err != nil{
 		fmt.Println("Failed to connect to MonogoDB", err)
 	}
-	api.StartServer()
+	defer client.Disconnect(context.Background())
+	api.SetMongoClient(client) // Pass the client to the API package
+	api.ApiRoutes()
 }
