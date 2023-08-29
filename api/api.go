@@ -18,7 +18,7 @@ type House struct {
 	ID         primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	HouseName  string             `json:"houseName" bson:"houseName"`
 	AccessCode string             `json:"accessCode" bson:"accessCode"`
-	Notes      string             `json:"notes" bson:"notes"`
+	Notes      string             `json:"houseNotes" bson:"notes"`
 }
 
 // establish and maintain a connection to the MongoDB server.
@@ -59,7 +59,7 @@ func ApiRoutes() error {
 	// api routes.
 	router.GET("/api/houses", getHouses)
 	// router.GET("/api/houses/:id", getHouseByID)
-	// router.POST("/api/houses", createHouse)
+	router.POST("/api/houses", addHouse)
 	// router.PUT("/api/houses/:id", updateHouse)
 	// router.DELETE("/api/houses/:id", deleteHouse)
 
@@ -76,14 +76,16 @@ func getHouses(c *gin.Context) {
 	houseName := strings.TrimSpace(strings.ToLower(c.Query("houseName")))
 	if houseName == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "houseName must have a value to search"})
+		return
 	}
 
-	fmt.Println(houseName)
+	fmt.Println("searching for:", houseName)
 
 	// fetch all houses from the collection.
-	data := House{}
+	var data  []House
+	fmt.Println(data)
 	pattern := primitive.Regex{Pattern: ".*" + regexp.QuoteMeta(houseName)}
-	err := housesCollection.FindOne(context.Background(), bson.M{"houseName": pattern}).Decode(&data)
+	cursor, err  := housesCollection.Find(context.Background(), bson.M{"houseName": pattern})
 	if err != nil {
 		fmt.Println("Failed to find a house: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch houses"})
@@ -91,9 +93,47 @@ func getHouses(c *gin.Context) {
 	}
 
 	// ensure that the MongoDB cursor is properly closed.
-	// defer cursor.Close(context.Background())
+	 defer cursor.Close(context.Background())
 
-	fmt.Println(data)
+// Iterate through the cursor and decode documents into the data slice.
+for cursor.Next(context.Background()){
+	var house House 
+	if err := cursor.Decode(&house); err != nil{
+		fmt.Println("failed to decode house", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error":"failed to fetch the houses"})
+		return
+	}
+	data = append(data,house)
+}
 
+	// Check for cursor errors after iterating.
+
+	if err := cursor.Err(); err != nil{
+		fmt.Println("Cursor error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error":"failed to fetch the house data"})
+		return
+	}
+	// respond with the array of matching houses.
 	c.JSON(http.StatusOK, data)
+}
+
+// function to create a new house and add to the da	tabase.
+func addHouse(c* gin.Context) { 
+	var newHouse House
+if err := c.ShouldBindJSON(&newHouse); err != nil {
+	c.JSON(http.StatusBadRequest, gin.H{"error": "Invaild data", "err": err})
+	return
+}
+
+// insert the new house into the House collection
+result, err := housesCollection.InsertOne(context.Background(), newHouse)
+fmt.Println(result)
+if err != nil{
+	c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to create a new house"})
+	return
+}
+
+// get the inserted id.
+insertedID := result.InsertedID.(primitive.ObjectID).Hex()
+c.JSON(http.StatusCreated, gin.H{"message":"House successfully created.", "id": insertedID})
 }
