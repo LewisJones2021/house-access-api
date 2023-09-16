@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lewisjones2021/house-access-api/middleware"
+	"github.com/lewisjones2021/house-access-api/routes"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -53,15 +55,18 @@ func CORSMiddleware() gin.HandlerFunc {
 func ApiRoutes() error {
 
 	router := gin.Default()
-
 	router.Use(CORSMiddleware())
-
+	housesRoutes := router.Group("/api/houses")
+	// register user routes defined in the application.
+	housesRoutes.Use(middleware.Authentication())
 	// api routes.
-	router.GET("/api/houses", getHouses)
-	// router.GET("/api/houses/:id", getHouseByID)
-	router.POST("/api/houses", addHouse)
-	router.PUT("/api/houses/:id", updateHouse)
-	router.DELETE("/api/houses/:id", deleteHouse)
+	housesRoutes.GET("/", getHouses)
+	// router.GET("//:id", getHouseByID)
+	housesRoutes.POST("/", addHouse)
+	housesRoutes.PUT("/:id", updateHouse)
+	housesRoutes.DELETE("/:id", deleteHouse)
+
+	routes.UserRoutes(router)
 
 	// start the server.
 	if err := router.Run(":8080"); err != nil {
@@ -217,4 +222,9 @@ func updateHouse(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "House data successfully udpated"})
+}
+
+// GET user api endpoint
+func getUser(c *gin.Context) {
+
 }
