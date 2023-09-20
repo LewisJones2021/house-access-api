@@ -74,8 +74,8 @@ func SignUp() gin.HandlerFunc {
 			return
 		}
 		// hash the user's password before storing it.
-		password := HashPassword(*user.Password)
-		user.Password = &password
+		password := HashPassword(user.Password)
+		user.Password = password
 
 		// if the email already exists, return an error.
 		if count > 0 {
@@ -86,10 +86,10 @@ func SignUp() gin.HandlerFunc {
 		user.ID = primitive.NewObjectID()
 
 		hexUserId := user.ID.Hex()
-		user.User_id = &hexUserId
-		token, refreshToken, _ := helpers.GenerateAllTokens(*user.Email, *user.Password, *user.User_id)
-		user.Token = &token
-		user.Refresh_token = &refreshToken
+		user.User_id = hexUserId
+		token, refreshToken, _ := helpers.GenerateAllTokens(user.Email, user.Password, user.User_id)
+		user.Token = token
+		user.Refresh_token = refreshToken
 
 		// insert the user data into the database.
 		resultInsertationNumber, insertErr := userCollection.InsertOne(ctx, user)
@@ -131,25 +131,27 @@ func Login() gin.HandlerFunc {
 		}
 
 		// check if the provided password matches the stored password for the user.
-		passWordIsValid, msg := VerifyPassword(*user.Password, *foundUser.Password)
+		passWordIsValid, msg := VerifyPassword(user.Password, foundUser.Password)
 
 		// if the password is not valid, return a n error response.
 		if !passWordIsValid {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 			return
 		}
+
+		fmt.Println(foundUser)
 		// generate access and refresh tokens for the authenticated user.
-		token, refreshToken, err := helpers.GenerateAllTokens(*foundUser.Email, *foundUser.Name, *foundUser.User_id)
+		token, refreshToken, err := helpers.GenerateAllTokens(foundUser.Email, foundUser.Name, foundUser.User_id)
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
-		foundUser.Token = &token
+		foundUser.Token = token
 
 		// update the user's tokens in the database.
-		helpers.UpdateAllTokens(token, refreshToken, *foundUser.User_id)
+		helpers.UpdateAllTokens(token, refreshToken, foundUser.User_id)
 
 		// respond with a successful login and user data.
 		c.JSON(http.StatusOK, foundUser)
