@@ -17,11 +17,6 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	// // create a new Gin router.
-	// router := gin.New()
-	// router.Use(gin.Logger())
-
-	// // client, err :=
 
 	client, err := InitMongoDB()
 

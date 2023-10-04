@@ -126,6 +126,7 @@ func Login() gin.HandlerFunc {
 
 		// if an error occurs while finding the user, return an error response.
 		if err != nil {
+			fmt.Println("Login or password incorrect")
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "login or password incorrect"})
 			return
 		}
