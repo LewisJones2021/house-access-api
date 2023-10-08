@@ -39,12 +39,12 @@ func SetMongoClient(c *mongo.Client) {
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		// c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
 
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+			c.Status(200)
 			return
 		}
 
@@ -57,12 +57,13 @@ func ApiRoutes() error {
 	router := gin.Default()
 	router.Use(CORSMiddleware())
 	housesRoutes := router.Group("/api/houses")
+	housesRoutes.Use(CORSMiddleware())
 	// register user routes defined in the application.
 	housesRoutes.Use(middleware.Authentication())
 	// api routes.
-	housesRoutes.GET("/", getHouses)
+	housesRoutes.GET("", getHouses)
 	// router.GET("//:id", getHouseByID)
-	housesRoutes.POST("/", addHouse)
+	housesRoutes.POST("", addHouse)
 	housesRoutes.PUT("/:id", updateHouse)
 	housesRoutes.DELETE("/:id", deleteHouse)
 
